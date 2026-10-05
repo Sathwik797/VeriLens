@@ -22,7 +22,7 @@ Language models possess remarkable linguistic fluency and reasoning capabilities
 **VeriLens AI** re-architects data analysis by strictly separating language reasoning from mathematical computation:
 
 - **LLMs are never trusted with numerical computation, statistical aggregation, or join execution.**
-- **A deterministic Pandas execution engine (`SafeExecutor`) executes strictly validated, sandboxed analytical plans.**
+- **A controlled deterministic Pandas execution engine (`SafeExecutor`) executes strictly validated analytical plans.**
 - **A deterministic verification engine (`VerificationService`) extracts numerical and relational claims from generated narratives and verifies every single claim against computed ground truth.**
 - **Every analytical output is scored with a deterministic Trust Score (0–100) alongside claim-level verification badges and traceable ground-truth evidence tables.**
 - **Multi-dataset workspaces evaluate compatibility, validate join keys, and execute safe joins with complete dataset provenance and anti-spoofing protection.**
@@ -74,30 +74,30 @@ User Question + Dataset(s)
 ```mermaid
 flowchart TD
     subgraph Ingestion ["1. INGESTION & PROFILING"]
-        F[Uploaded Datasets (.csv, .xlsx)] --> DL[DataLoader]
-        DL --> DP[DataProfiler]
-        DP --> VI[Visualization Intelligence]
+        F["Uploaded Datasets (.csv, .xlsx)"] --> DL["DataLoader"]
+        DL --> DP["DataProfiler"]
+        DP --> VI["Visualization Intelligence"]
     end
 
     subgraph Workspace ["2. MULTI-DATASET INTELLIGENCE"]
-        DP --> DCA[DatasetCompatibilityAnalyzer]
-        DCA -->|COMPATIBLE / RELATED / UNRELATED| JIA[JoinIntelligenceAnalyzer]
-        JIA -->|Candidate Keys, Cardinality, Coverage| SJE[SafeJoinExecutor]
-        SJE -->|11 Safety Gates + Provenance| DJ[Derived Joined Dataset]
+        DP --> DCA["DatasetCompatibilityAnalyzer"]
+        DCA -->|"COMPATIBLE / RELATED / UNRELATED"| JIA["JoinIntelligenceAnalyzer"]
+        JIA -->|"Candidate Keys, Cardinality, Coverage"| SJE["SafeJoinExecutor"]
+        SJE -->|"11 Safety Gates + Provenance"| DJ["Derived Joined Dataset"]
     end
 
     subgraph QuestionAnswering ["3. SELF-VERIFYING ANALYTICAL PIPELINE"]
-        Q[User Analytical Question] --> PS[PlannerService (Gemini)]
-        PS -->|AnalysisPlan| SE[SafeExecutor (Pandas)]
-        SE -->|Ground-Truth Evidence| NS[NarratorService (Gemini)]
-        NS -->|Narrative Text| CE[ClaimExtractorService (Gemini)]
-        CE -->|Structured Claims| VS[VerificationService (Deterministic)]
-        SE -.->|Ground-Truth Matrix| VS
-        VS -->|Verified / Mismatch / Inconclusive| TS[TrustScoreService (Deterministic)]
+        Q["User Analytical Question"] --> PS["PlannerService (Gemini)"]
+        PS -->|"AnalysisPlan"| SE["SafeExecutor (Pandas)"]
+        SE -->|"Ground-Truth Evidence"| NS["NarratorService (Gemini)"]
+        NS -->|"Narrative Text"| CE["ClaimExtractorService (Gemini)"]
+        CE -->|"Structured Claims"| VS["VerificationService (Deterministic)"]
+        SE -.->|"Ground-Truth Matrix"| VS
+        VS -->|"Verified / Mismatch / Inconclusive"| TS["TrustScoreService (Deterministic)"]
     end
 
     subgraph Presentation ["4. USER INTERFACE"]
-        TS --> UI[Gradio 6 Interactive Workspace]
+        TS --> UI["Gradio 6 Interactive Workspace"]
         DJ --> UI
         VI --> UI
     end
@@ -112,9 +112,9 @@ flowchart TD
 | **Visualization** | `DataVisualizer` & `VisualizationIntelligence` | Plotly, Heuristic Engine | Generates candidate charts, applies deterministic suitability filters, and renders interactive plots. |
 | **Compatibility** | `DatasetCompatibilityAnalyzer` | Deterministic Rules | Classifies dataset pairs as `COMPATIBLE`, `RELATED`, or `UNRELATED` without premature merging. |
 | **Join Intelligence** | `JoinIntelligenceAnalyzer` | Deterministic Set Operations | Discovers candidate join keys, tests uniqueness, measures coverage, and classifies cardinality. |
-| **Safe Join** | `SafeJoinExecutor` | Sandboxed Pandas Merge | Enforces 11 pre-join safety gates, input immutability, anti-spoofing provenance, and post-join validation. |
+| **Safe Join** | `SafeJoinExecutor` | Controlled Pandas Merge | Enforces 11 pre-join safety gates, original DataFrame preservation, anti-spoofing provenance, and post-join validation. |
 | **Planning** | `PlannerService` | Gemini 2.5 Flash | Interprets analytical intent into a strict, validated JSON `AnalysisPlan`. |
-| **Computation** | `SafeExecutor` | Sandboxed Pandas | Executes groupby, aggregations, filters, sorting, and top-k operations deterministically. |
+| **Computation** | `SafeExecutor` | Controlled Pandas | Executes groupby, aggregations, filters, sorting, and top-k operations deterministically. |
 | **Narration** | `NarratorService` | Gemini 2.5 Flash | Formulates an executive explanation strictly bounded by computed ground truth. |
 | **Claim Extraction** | `ClaimExtractorService` | Gemini 2.5 Flash | Extracts granular `AnalyticalClaim` objects (`subject`, `metric`, `value`, `comparison`). |
 | **Verification** | `VerificationService` | Python / Math Algorithms | Verifies every claim against ground truth using strict numerical tolerances and ranking checks. |
@@ -124,7 +124,7 @@ flowchart TD
 
 ## 🛡️ Self-Verification Engine
 
-The self-verification engine operates on the principle that **no LLM statement should be presented as fact without verifiable mathematical confirmation**:
+The self-verification engine operates on the principle that **supported analytical claims are verified against computed ground-truth evidence before being assigned a verification status**:
 
 1. **Structured Plan Generation:** `PlannerService` converts the query into an `AnalysisPlan` containing:
    - `aggregations`: `[{"column": "Profit", "agg": "sum"}]`
@@ -152,8 +152,12 @@ The self-verification engine operates on the principle that **no LLM statement s
    - `MISMATCH` (❌): The claim contradicts computed numbers (e.g. LLM miscalculated or hallucinated).
    - `INCONCLUSIVE` (⚠️): The claim cannot be verified from the computed evidence subset.
 7. **Trust Score Calculation:**
-   $$\text{Trust Score} = \max\left(0, \frac{\text{Verified Claims} \times 100 + \text{Inconclusive Claims} \times 50}{\text{Total Claims}} - (\text{Mismatch Penalty} \times 50)\right)$$
-   If any claim is a direct mathematical `MISMATCH`, the score is penalized heavily to alert the user.
+   $$\text{Trust Score} = \frac{(\text{Verified Claims} \times 100) + (\text{Inconclusive Claims} \times 50) + (\text{Mismatch Claims} \times 0)}{\text{Total Claims}}$$
+   The final Trust Score is the deterministic arithmetic mean of all individual claim scores (`VERIFIED` = 100, `INCONCLUSIVE` = 50, `MISMATCH` = 0), rounded to 2 decimal places:
+   - **High trust** ($90.0 - 100.0$)
+   - **Moderate trust** ($70.0 - 89.99$)
+   - **Low trust** ($50.0 - 69.99$)
+   - **Very low trust** ($0.0 - 49.99$)
 
 ---
 
@@ -161,7 +165,7 @@ The self-verification engine operates on the principle that **no LLM statement s
 
 VeriLens AI operates out of the box on arbitrary tabular datasets without prior schema configuration:
 
-- **Format Support:** CSV files (`.csv`) with automatic encoding detection (`utf-8`, `latin1`, `cp1252`) and Excel workbooks (`.xlsx`, `.xls`) with active sheet auto-detection.
+- **Format Support:** CSV files (`.csv`) with automatic encoding detection (`utf-8`, `latin1`, `cp1252`) and Excel workbooks (`.xlsx`) with active sheet auto-detection.
 - **Statistical Profiling:** Row counts, column counts, memory usage, duplicate row detection, column dtypes, and missing value percentages.
 - **Semantic Type Identification:**
   - Continuous numerical measures (`float64`, non-identifier `int64`).
@@ -306,12 +310,12 @@ Join Recommendation (Phase 2)
                   Derived Joined Dataset + Provenance Metadata
 ```
 
-### Dataset Provenance & Anti-Spoofing Protection
-- **Authoritative Provenance:** When files are loaded via `DataLoader`, immutable source metadata is attached (`df.attrs["filename"]`).
-- **Anti-Spoofing Hierarchy:** The DataFrame's internal provenance is strictly authoritative over caller-supplied names:
+### Authoritative Dataset Provenance & Anti-Spoofing Protection
+- **Authoritative Dataset Provenance:** When files are loaded via `DataLoader`, source metadata is attached to the DataFrame (`df.attrs["filename"]`). `SafeJoinExecutor` treats DataFrame provenance as authoritative and rejects contradictory caller-supplied identities.
+- **Anti-Spoofing Hierarchy:** The DataFrame's internal provenance takes precedence over caller-supplied names:
   $$\text{DataFrame Provenance } (\texttt{df.attrs["filename"]}) \succ \text{Explicit Caller Identity}$$
-- **Contradiction Guard:** If a caller passes `left_name="customers.csv"` but the DataFrame's actual provenance is `"unrelated_products.csv"`, execution is **instantly blocked**. Explicit arguments cannot disguise mismatched data.
-- **Immutability Guarantee:** Original DataFrames are never modified in place (no in-place renames, drops, or value mutations).
+- **Contradiction Guard:** If a caller passes `left_name="customers.csv"` but the DataFrame's actual provenance is `"unrelated_products.csv"`, execution is **blocked**. Contradictory caller identities are rejected to prevent executing joins against unintended tables.
+- **Original Data Preservation:** Original input DataFrames are never modified in place (no in-place renames, drops, or value mutations).
 - **Traceable Derived Lineage:** The joined DataFrame preserves complete lineage in `.attrs["veri_lens_provenance"]`.
 
 ### Post-Join Validation & Anomaly Detection
@@ -331,16 +335,16 @@ Immediately after execution, the merged DataFrame is audited:
 | Subsystem | Component | Technology | Responsibility |
 | :--- | :--- | :--- | :--- |
 | **Reasoning** | `PlannerService` | Gemini 2.5 Flash | Interprets natural language intent into a structured `AnalysisPlan`. |
-| **Computation** | `SafeExecutor` | Sandboxed Pandas | Executes mathematical aggregations, filters, groupings, and sorting. |
+| **Computation** | `SafeExecutor` | Controlled Pandas | Executes mathematical aggregations, filters, groupings, and sorting. |
 | **Narration** | `NarratorService` | Gemini 2.5 Flash | Formulates clear, professional narratives grounded in computed evidence. |
 | **Extraction** | `ClaimExtractorService` | Gemini 2.5 Flash | Deconstructs narrative sentences into structured `AnalyticalClaim` objects. |
 | **Verification** | `VerificationService` | Python / NumPy | Mathematically validates each claim against ground truth with strict tolerances. |
-| **Trust Scoring**| `TrustScoreService` | Python Algorithm | Computes objective, explainable Trust Score (0–100) and penalties. |
+| **Trust Scoring**| `TrustScoreService` | Python Algorithm | Computes objective, explainable Trust Score (0–100) based on verified claim points. |
 | **Profiling** | `DataProfiler` | Pandas / NumPy | Extracts statistical profiles, missingness, and column data types. |
 | **Compatibility**| `DatasetCompatibilityAnalyzer`| Deterministic Rules | Classifies dataset pairs as `COMPATIBLE`, `RELATED`, or `UNRELATED`. |
 | **Key Safety** | `ColumnNormalizer` | Regex / Heuristics | Filters out index-like columns and validates candidate business keys. |
 | **Join Analysis**| `JoinIntelligenceAnalyzer`| Deterministic Sets | Computes key coverage, cardinality, and safe join recommendations. |
-| **Join Execution**| `SafeJoinExecutor` | Sandboxed Pandas | Enforces 11 safety gates, anti-spoofing, and executes approved merges. |
+| **Join Execution**| `SafeJoinExecutor` | Controlled Pandas | Enforces 11 safety gates, anti-spoofing, and executes approved merges. |
 
 ---
 
@@ -376,7 +380,7 @@ VeriLens-AI/
 │   │   ├── safe_join_executor.py     # Deterministic SafeJoinExecutor with anti-spoofing gates
 │   │   └── visualizer.py             # Dataset-agnostic Plotly chart renderer
 │   ├── executor/
-│   │   └── safe_executor.py          # Sandboxed Pandas analytical plan execution engine
+│   │   └── safe_executor.py          # Controlled Pandas analytical plan execution engine
 │   ├── formatters/
 │   │   ├── dashboard_formatter.py    # HTML profile cards and summary formatters
 │   │   ├── verification_formatter.py # Trust score cards and verification badge formatters
@@ -414,7 +418,7 @@ VeriLens-AI/
 │   ├── test_multi_dataset_compatibility.py # Multi-dataset workspace and relationship tests
 │   ├── test_narrator_service.py      # Narrative grounding tests
 │   ├── test_planner_service.py       # Analytical planning tests
-│   ├── test_safe_executor.py         # Sandboxed Pandas execution tests
+│   ├── test_safe_executor.py         # Controlled Pandas execution tests
 │   ├── test_safe_join_executor.py    # Safe join execution, safety gates, and anti-spoofing tests
 │   ├── test_trust_score_service.py   # Deterministic trust scoring tests
 │   ├── test_ui.py                    # Gradio dashboard integration tests
@@ -579,7 +583,7 @@ OK
 
 ### Major Test Suites (193 Tests Total)
 - **Safe Join Execution & Anti-Spoofing (`test_safe_join_executor.py` — 30 tests):**
-  1:N joins, 1:1 joins, outer joins, blocked `NO_SAFE_JOIN`, blocked many-to-many, index-like key exclusion, input immutability, multiplication factor validation, duplicate expansion detection, dataset identity matching, mismatched left/right datasets, missing provenance rejection, contradictory caller identity rejection, and mock-verified assertion that `pandas.merge()` is never called when unsafe.
+  1:N joins, 1:1 joins, outer joins, blocked `NO_SAFE_JOIN`, blocked many-to-many, index-like key exclusion, original DataFrame preservation, multiplication factor validation, duplicate expansion detection, dataset identity matching, mismatched left/right datasets, missing provenance rejection, contradictory caller identity rejection, and mock-verified assertion that `pandas.merge()` is never called when unsafe.
 - **Join Intelligence (`test_join_intelligence.py` — 19 tests):**
   Pairwise candidate key discovery, coverage calculation, null penalties, cardinality classification, and deterministic confidence scoring.
 - **Multi-Dataset Compatibility (`test_multi_dataset_compatibility.py` — 12 tests):**
@@ -593,9 +597,9 @@ OK
 - **Deterministic Verification (`test_verification_service.py` — 27 tests):**
   Mathematical tolerance checks, ranking claims, relational comparisons, and ground-truth validation.
 - **Trust Scoring (`test_trust_score_service.py` — 12 tests):**
-  Weighted scoring formulas, mismatch penalties, and rationales.
+  Deterministic claim point scoring (100 / 50 / 0), status category boundaries, and rationales.
 - **Execution & Planning (`test_safe_executor.py`, `test_planner_service.py` — 24 tests):**
-  Sandboxed Pandas execution, schema validation, and plan extraction.
+  Controlled Pandas execution, schema validation, and plan extraction.
 - **UI & Integration (`test_ui.py`, `test_analysis_service.py` — 26 tests):**
   End-to-end question answering, Gradio dashboard wiring, and error handling.
 
@@ -622,7 +626,7 @@ The VeriLens AI architecture has been tested and validated across real-world and
 2. **Deterministic Mathematical Authority:** All mathematical aggregates, statistical summaries, set overlaps, and merge operations are performed by deterministic algorithms in Pandas and Python.
 3. **No Automatic Join Execution:** File uploads, profiling, and relationship detection never merge data automatically. Joins require explicit user confirmation.
 4. **Pre-Merge Safety Gates:** Unsafe recommendations, many-to-many relationships, index-like columns, and low-confidence keys are rejected **before** calling `pandas.merge()`.
-5. **Immutable Dataset Provenance:** DataFrames carry source provenance that cannot be spoofed or overridden by caller arguments.
+5. **Authoritative Dataset Provenance:** SafeJoinExecutor treats DataFrame provenance as authoritative and rejects contradictory caller-supplied identities.
 6. **Conservative Failure Mode:** When evidence is ambiguous or provenance cannot be established, VeriLens blocks execution rather than guessing.
 
 ---
@@ -644,11 +648,11 @@ The VeriLens AI architecture has been tested and validated across real-world and
 - [x] **Excel Ingestion:** Multi-sheet `.xlsx` workbook loading with active sheet auto-detection.
 - [x] **Dataset-Agnostic Automated EDA:** Statistical profiling without hardcoded column dependencies.
 - [x] **Visualization Intelligence:** Candidate chart generation, heuristic suitability rules, and Plotly rendering.
-- [x] **Sandboxed SafeExecutor:** Controlled Pandas execution engine preventing arbitrary code injection.
+- [x] **Controlled SafeExecutor:** Deterministic Pandas execution engine preventing arbitrary code injection.
 - [x] **Grounded Narration:** Executive explanations bound strictly to computed ground-truth evidence.
 - [x] **Structured Claim Extraction:** Granular parsing of narrative text into atomic testable statements.
 - [x] **Deterministic Verification:** Numerical, ranking, and relational claim verification against ground truth.
-- [x] **Deterministic Trust Scoring:** 0–100 Trust Score with mismatch penalties and transparent rationale.
+- [x] **Deterministic Trust Scoring:** 0–100 Trust Score with exact claim scoring (100 / 50 / 0) and transparent rationale.
 - [x] **Multi-Dataset Workspace (Phase 1):** Simultaneous multi-file ingestion and pairwise relationship classification.
 - [x] **Candidate Key Safety:** Filtering of index-like row counters while preserving legitimate business keys.
 - [x] **Safe Join Intelligence (Phase 2):** Deterministic candidate join-key discovery, cardinality classification, and coverage measurement.
