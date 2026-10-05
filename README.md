@@ -1,7 +1,7 @@
 # 🔍 VeriLens AI — Self-Verifying LLM Data Analyst
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-193%2F193%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-195%20total-blue.svg)]()
 [![Gemini](https://img.shields.io/badge/LLM-Gemini%202.5%20Flash-orange.svg)](https://deepmind.google/technologies/gemini/)
 [![Gradio](https://img.shields.io/badge/UI-Gradio%206-orange.svg)](https://www.gradio.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -25,7 +25,7 @@ Language models possess remarkable linguistic fluency and reasoning capabilities
 - **A controlled deterministic Pandas execution engine (`SafeExecutor`) executes strictly validated analytical plans.**
 - **A deterministic verification engine (`VerificationService`) extracts numerical and relational claims from generated narratives and verifies every single claim against computed ground truth.**
 - **Every analytical output is scored with a deterministic Trust Score (0–100) alongside claim-level verification badges and traceable ground-truth evidence tables.**
-- **Multi-dataset workspaces evaluate compatibility, validate join keys, and execute safe joins with complete dataset provenance and anti-spoofing protection.**
+- **Multi-dataset workspaces evaluate compatibility, validate join keys, and execute safe joins with complete dataset provenance and provenance consistency protection.**
 
 VeriLens AI does not make speculative claims of "zero hallucinations." Instead, it delivers **deterministic verification of supported analytical claims against computed ground truth**.
 
@@ -112,7 +112,7 @@ flowchart TD
 | **Visualization** | `DataVisualizer` & `VisualizationIntelligence` | Plotly, Heuristic Engine | Generates candidate charts, applies deterministic suitability filters, and renders interactive plots. |
 | **Compatibility** | `DatasetCompatibilityAnalyzer` | Deterministic Rules | Classifies dataset pairs as `COMPATIBLE`, `RELATED`, or `UNRELATED` without premature merging. |
 | **Join Intelligence** | `JoinIntelligenceAnalyzer` | Deterministic Set Operations | Discovers candidate join keys, tests uniqueness, measures coverage, and classifies cardinality. |
-| **Safe Join** | `SafeJoinExecutor` | Controlled Pandas Merge | Enforces 11 pre-join safety gates, original DataFrame preservation, anti-spoofing provenance, and post-join validation. |
+| **Safe Join** | `SafeJoinExecutor` | Controlled Pandas Merge | Enforces 11 pre-join safety gates, original DataFrame preservation, provenance consistency validation, and post-join validation. |
 | **Planning** | `PlannerService` | Gemini 2.5 Flash | Interprets analytical intent into a strict, validated JSON `AnalysisPlan`. |
 | **Computation** | `SafeExecutor` | Controlled Pandas | Executes groupby, aggregations, filters, sorting, and top-k operations deterministically. |
 | **Narration** | `NarratorService` | Gemini 2.5 Flash | Formulates an executive explanation strictly bounded by computed ground truth. |
@@ -310,7 +310,7 @@ Join Recommendation (Phase 2)
                   Derived Joined Dataset + Provenance Metadata
 ```
 
-### Authoritative Dataset Provenance & Anti-Spoofing Protection
+### Authoritative Dataset Provenance & Identity Validation Protection
 - **Authoritative Dataset Provenance:** When files are loaded via `DataLoader`, source metadata is attached to the DataFrame (`df.attrs["filename"]`). `SafeJoinExecutor` treats DataFrame provenance as authoritative and rejects contradictory caller-supplied identities.
 - **Anti-Spoofing Hierarchy:** The DataFrame's internal provenance takes precedence over caller-supplied names:
   $$\text{DataFrame Provenance } (\texttt{df.attrs["filename"]}) \succ \text{Explicit Caller Identity}$$
@@ -360,7 +360,7 @@ Immediately after execution, the merged DataFrame is audited:
 | **Gradio 6.x** | User Interface | Interactive web application, dataset upload, and visualization dashboard |
 | **Plotly 6.x** | Visualization | Dynamic, interactive charts and distribution visualizers |
 | **OpenPyXL** | Spreadsheet Engine | High-performance Excel workbook ingestion (`.xlsx`) |
-| **Unittest** | Testing Framework | Comprehensive unit, negative, and regression test suites (193 tests) |
+| **Unittest** | Testing Framework | Comprehensive unit, negative, and regression test suites (195 tests) |
 
 ---
 
@@ -408,7 +408,7 @@ VeriLens-AI/
 │   ├── test_join/                    # Canonical synthetic customer & order validation files
 │   └── walmart/                      # Walmart weekly sales validation dataset
 ├── docs/                             # Architecture documentation and specs
-├── tests/                            # Comprehensive test suite (193/193 passing)
+├── tests/                            # Comprehensive test suite (195 tests)
 │   ├── test_analysis_service.py      # Pipeline integration tests
 │   ├── test_candidate_keys.py        # Candidate-key detection and index-like exclusion tests
 │   ├── test_claim_extractor_service.py# Claim extraction tests
@@ -577,11 +577,10 @@ python -m unittest discover tests -v
 ```
 
 ```text
-Ran 193 tests in 24.292s
-OK
+The repository contains 195 deterministic tests across unit, negative, integration, and regression coverage.
 ```
 
-### Major Test Suites (193 Tests Total)
+### Major Test Suites (195 Tests Total)
 - **Safe Join Execution & Anti-Spoofing (`test_safe_join_executor.py` — 30 tests):**
   1:N joins, 1:1 joins, outer joins, blocked `NO_SAFE_JOIN`, blocked many-to-many, index-like key exclusion, original DataFrame preservation, multiplication factor validation, duplicate expansion detection, dataset identity matching, mismatched left/right datasets, missing provenance rejection, contradictory caller identity rejection, and mock-verified assertion that `pandas.merge()` is never called when unsafe.
 - **Join Intelligence (`test_join_intelligence.py` — 19 tests):**
@@ -657,7 +656,7 @@ The VeriLens AI architecture has been tested and validated across real-world and
 - [x] **Candidate Key Safety:** Filtering of index-like row counters while preserving legitimate business keys.
 - [x] **Safe Join Intelligence (Phase 2):** Deterministic candidate join-key discovery, cardinality classification, and coverage measurement.
 - [x] **Safe Join Execution (Phase 3):** User-controlled execution with 11 pre-join safety gates and post-join validation.
-- [x] **Dataset Provenance & Anti-Spoofing:** Authoritative DataFrame provenance validation preventing identity spoofing.
+- [x] **Dataset Provenance & Anti-Spoofing:** Authoritative DataFrame provenance validation preventing contradictory dataset identities.
 
 ---
 
