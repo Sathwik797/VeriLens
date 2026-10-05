@@ -1,0 +1,5 @@
+order_id,customer_id,amount,region
+O001,C001,100,East
+O002,C001,200,East
+O003,C002,150,West
+O004,C999,50,South
