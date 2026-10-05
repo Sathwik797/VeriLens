@@ -235,7 +235,7 @@ class SafeJoinExecutor:
         name_a = id_left
         name_b = id_right
 
-        # Gate 6: Requested join type check
+        # Gate 6: Controlled join type check
         active_join_type = requested_join_type or recommendation.recommended_join
         if active_join_type not in _JOIN_TYPE_TO_PANDAS:
             return cls._block_execution(
@@ -263,7 +263,7 @@ class SafeJoinExecutor:
                 now_ts=now_ts,
             )
 
-        # Gate 6 & 7: Column existence and match with validated candidate
+        # Gate 8: Join columns must exist in the validated candidate
         if col_left not in left_df.columns:
             return cls._block_execution(
                 error_reason=f"Left join column '{col_left}' does not exist in left dataset '{name_a}'.",
@@ -284,7 +284,7 @@ class SafeJoinExecutor:
                 now_ts=now_ts,
             )
 
-        # Gate 8: Disallow Many-to-Many joins to prevent Cartesian explosions
+        # Gate 9: Disallow Many-to-Many joins to prevent Cartesian explosions
         if recommendation.cardinality == "MANY_TO_MANY":
             return cls._block_execution(
                 error_reason="Many-to-many join is blocked due to Cartesian explosion risk.",
@@ -310,7 +310,7 @@ class SafeJoinExecutor:
                 now_ts=now_ts,
             )
 
-        # Gate 9: Key columns must not be index-like
+        # Gate 10: Key columns must not be index-like
         if ColumnNormalizer.is_index_like(col_left, left_df[col_left]):
             return cls._block_execution(
                 error_reason=f"Left key column '{col_left}' is an index-like or row counter column. Join blocked.",
@@ -331,7 +331,7 @@ class SafeJoinExecutor:
                 now_ts=now_ts,
             )
 
-        # Gate 10: Phase 2 confidence check (must be at least 50 / LOW)
+        # Gate 11: Phase 2 confidence check (must be at least 50 / LOW)
         if recommendation.confidence < 50 or recommendation.confidence_level == "VERY LOW":
             return cls._block_execution(
                 error_reason=f"Phase 2 confidence is too low ({recommendation.confidence}%, {recommendation.confidence_level}). Join blocked.",
