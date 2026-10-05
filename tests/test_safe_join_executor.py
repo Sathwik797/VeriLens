@@ -656,6 +656,33 @@ class TestSafeJoinExecutor(unittest.TestCase):
             self.assertIsNone(output.dataframe)
             self.assertIn("mismatch", output.result.error_reason.lower())
 
+    # 31. missing recommendation is blocked cleanly before recommendation fields are accessed
+    def test_31_missing_recommendation_blocked_cleanly(self):
+        with patch("pandas.merge") as mock_merge:
+            output = SafeJoinExecutor.execute(
+                self.customers_df,
+                self.orders_df,
+                None,
+            )
+            mock_merge.assert_not_called()
+            self.assertEqual(output.result.status, "BLOCKED")
+            self.assertIsNone(output.dataframe)
+            self.assertIn("Missing Phase 2 JoinRecommendation", output.result.error_reason)
+
+    # 32. explicit join type must match the approved recommendation exactly
+    def test_32_mismatched_requested_join_type_blocked(self):
+        with patch("pandas.merge") as mock_merge:
+            output = SafeJoinExecutor.execute(
+                self.customers_df,
+                self.orders_df,
+                self.canonical_recommendation,
+                requested_join_type="INNER_JOIN",
+            )
+            mock_merge.assert_not_called()
+            self.assertEqual(output.result.status, "BLOCKED")
+            self.assertIsNone(output.dataframe)
+            self.assertIn("does not match approved", output.result.error_reason)
+
     # 30. Contradictory explicit name on right side is BLOCKED
     def test_30_contradictory_explicit_name_right_side_blocked(self):
         unrelated_df = pd.DataFrame({"customer_id": ["C001", "C002"], "y": [10, 20]})
