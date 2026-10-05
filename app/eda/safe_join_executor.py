@@ -103,11 +103,24 @@ class SafeJoinExecutor:
         Returns SafeJoinExecutionOutput containing the Pydantic result model
         and the derived joined DataFrame (or None if blocked).
         """
+        now_ts = datetime.now(timezone.utc).isoformat()
+
+        # Gate 1: Recommendation must exist before any recommendation fields
+        # are accessed. This keeps the intended BLOCKED failure mode intact.
+        if recommendation is None:
+            return cls._block_execution(
+                error_reason="Missing Phase 2 JoinRecommendation.",
+                recommendation=None,
+                name_a="left_dataset",
+                name_b="right_dataset",
+                derived_name="left_dataset_right_dataset_joined",
+                now_ts=now_ts,
+            )
+
         name_a = recommendation.dataset_a or "left_dataset"
         name_b = recommendation.dataset_b or "right_dataset"
         col_left = recommendation.left_column
         col_right = recommendation.right_column
-        now_ts = datetime.now(timezone.utc).isoformat()
 
         # Derive clean dataset name for the resulting derived table
         stem_a = os.path.splitext(os.path.basename(name_a))[0]
@@ -118,7 +131,6 @@ class SafeJoinExecutor:
         # 1. SAFETY GATES (CRITICAL PRE-JOIN ENFORCEMENT)
         # -------------------------------------------------------------
         # Gate 1: Recommendation exists and is valid
-        if recommendation is None:
             return cls._block_execution(
                 error_reason="Missing Phase 2 JoinRecommendation.",
                 recommendation=recommendation,
@@ -235,19 +247,21 @@ class SafeJoinExecutor:
                 now_ts=now_ts,
             )
 
-        # If user explicitly requested a join type different from Phase 2 recommendation,
-        # ensure it is safe (e.g., INNER_JOIN when LEFT_JOIN was recommended is safe; arbitrary is not)
+        # Gate 7: An explicitly requested join type must exactly match the
+        # Phase 2 recommendation. Do not silently weaken or broaden the
+        # approved join semantics at execution time.
         if requested_join_type and requested_join_type != recommendation.recommended_join:
-            # Allow narrowing to INNER_JOIN or compatible join types
-            if requested_join_type not in ("INNER_JOIN", "LEFT_JOIN", "RIGHT_JOIN", "FULL_OUTER_JOIN"):
-                return cls._block_execution(
-                    error_reason=f"Requested join type '{requested_join_type}' does not match approved '{recommendation.recommended_join}'.",
-                    recommendation=recommendation,
-                    name_a=name_a,
-                    name_b=name_b,
-                    derived_name=derived_name,
-                    now_ts=now_ts,
-                )
+            return cls._block_execution(
+                error_reason=(
+                    f"Requested join type '{requested_join_type}' does not match "
+                    f"approved '{recommendation.recommended_join}'."
+                ),
+                recommendation=recommendation,
+                name_a=name_a,
+                name_b=name_b,
+                derived_name=derived_name,
+                now_ts=now_ts,
+            )
 
         # Gate 6 & 7: Column existence and match with validated candidate
         if col_left not in left_df.columns:
